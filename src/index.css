@@ -98,4 +98,11 @@ html, body {
   opacity: 1;
   transform: scale(1) translateY(0);
 }
+
+/* TPC Geometric Green Triangle Strip Pattern */
+.bg-tpc-strip {
+  background-image: url('./assets/tpc-strip.svg');
+  background-repeat: repeat;
+  background-size: 60px 40px;
+}
 
