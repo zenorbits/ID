@@ -1,25 +1,26 @@
 import React from 'react'
 
 const Header = () => {
-    return (
-        <div className='md:max-w-sm md:mx-auto'>
+  return (
+    <header className="w-full max-w-sm mx-auto px-4 pt-4 pb-2 flex items-center justify-between relative z-20">
+      <div className="flex items-center gap-3">
+        <img
+          src="https://v0-chirayu-durgude.vercel.app/tpc-logo.svg"
+          alt="TPC Logo"
+          className="h-12 w-auto drop-shadow-[0_0_12px_rgba(34,197,94,0.35)]"
+        />
+      </div>
 
-            <div className='p-4'>
-                <img
-                    src="https://v0-chirayu-durgude.vercel.app/tpc-logo.svg"
-                    alt="TPCLOGO"
-                    className='h-20'
-                />
-            </div>
-
-            <div className='flex justify-center'>
-                <p className='border-1 rounded-full px-8 py-2 items-center text-center absolute top-20'>
-                    2026-2027
-                </p>
-            </div>
-
+      <div className="flex items-center">
+        <div className="px-4 py-1.5 rounded-full bg-neutral-900/80 border border-green-500/40 backdrop-blur-md shadow-[0_0_15px_rgba(34,197,94,0.15)] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+          <span className="text-[11px] font-mono tracking-widest text-green-300 font-bold">
+            2026–2027
+          </span>
         </div>
-    )
+      </div>
+    </header>
+  )
 }
 
-export default Header
+export default Header
