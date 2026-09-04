@@ -51,7 +51,7 @@ export default function SocialMedia() {
 VERSION:3.0
 FN:Chirayu Durgude
 TITLE:Technical Head
-ORG:Training & Placement Cell; MES College of Engineering
+ORG:Training & Placement Committee; MES College of Engineering
 EMAIL:chirayudurgude@gmail.com
 NOTE:Official TPC Digital Pass 2026-2027
 END:VCARD`;
@@ -74,7 +74,7 @@ END:VCARD`;
       <div className="w-full max-w-sm flex flex-col gap-2.5">
         <div className="text-center mb-1">
           <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-400 border-b border-neutral-800 pb-1">
-            Connect &amp; Verification
+            TRAIN POTENTIAL • PROMOTE SKILLS
           </span>
         </div>
 

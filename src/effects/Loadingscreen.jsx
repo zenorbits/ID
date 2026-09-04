@@ -56,7 +56,7 @@ export default function LoadingScreen({ minDuration = 1800 }) {
           animateIn ? "translate-x-0 opacity-100" : "translate-x-32 opacity-0"
         }`}
       >
-        Training &amp; Placement Cell
+        Training &amp; Placement Committee
       </p>
     </div>
   );

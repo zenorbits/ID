@@ -194,7 +194,7 @@ const Card3D = () => {
 
             {/* FOOTER: Name & Designation */}
             <div
-              className="relative z-20 text-center flex flex-col items-center gap-1 mb-1"
+              className="relative z-20 text-center flex flex-col items-center gap-1.5 mb-2"
               style={{ transform: 'translateZ(30px)' }}
             >
               <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
@@ -206,16 +206,8 @@ const Card3D = () => {
                 </span>
               </div>
               <p className="text-[11px] text-neutral-400 tracking-wider uppercase font-medium mt-0.5">
-                Training &amp; Placement Cell
+                Training &amp; Placement Committee
               </p>
-            </div>
-
-            {/* Bottom Security Strip with Geometric Mosaic */}
-            <div
-              className="relative z-20 h-2.5 w-full rounded-full bg-tpc-strip border border-green-400/50 shadow-[0_0_12px_rgba(34,197,94,0.35)] overflow-hidden"
-              style={{ transform: 'translateZ(15px)' }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20 pointer-events-none"></div>
             </div>
           </div>
         </div>

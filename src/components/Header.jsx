@@ -2,12 +2,12 @@ import React from 'react'
 
 const Header = () => {
   return (
-    <header className="w-full max-w-sm mx-auto px-4 pt-4 pb-2 flex items-center justify-between relative z-20">
+    <header className="w-full max-w-md sm:max-w-xl mx-auto px-4 sm:px-6 pt-6 pb-2 flex items-center justify-between relative z-20">
       <div className="flex items-center gap-3">
         <img
           src="https://v0-chirayu-durgude.vercel.app/tpc-logo.svg"
           alt="TPC Logo"
-          className="h-12 w-auto drop-shadow-[0_0_12px_rgba(34,197,94,0.35)]"
+          className="h-24 sm:h-32 w-auto object-contain drop-shadow-[0_0_24px_rgba(34,197,94,0.45)] transition-transform hover:scale-105 duration-300"
         />
       </div>
 
