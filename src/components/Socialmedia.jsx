@@ -67,7 +67,7 @@ END:VCARD`;
   return (
     <div
       ref={sectionRef}
-      className={`w-full flex justify-center py-6 px-4 scroll-blur-container ${
+      className={`w-full flex justify-center py-2 px-4 scroll-blur-container ${
         isBlurred ? "scroll-blur-active" : "scroll-blur-inactive"
       }`}
     >
@@ -134,4 +134,4 @@ END:VCARD`;
       </div>
     </div>
   );
-}
+}

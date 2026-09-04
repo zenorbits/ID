@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 
 /**
  * useScrollBlur hook
- * 
+ *
  * Provides an intelligent, high-performance scroll blur effect:
  * - Only blurs when actively scrolling DOWN TOWARDS the target element.
  * - Once the user reaches the element ("after reaching there"), the blur effect
@@ -10,7 +10,17 @@ import { useEffect, useState, useRef } from "react";
  * - If the user scrolls back up to the top, the state resets so approaching it again
  *   can re-trigger the focus-in effect.
  * - Gracefully unblurs when scrolling stops before reaching the target.
- * 
+ *
+ * Mobile-hardened:
+ * - Viewport height is cached and only recomputed on a debounced resize,
+ *   instead of being re-read (and re-triggering blur logic) on every
+ *   mobile address-bar show/hide event.
+ * - scrollY is clamped to the valid [0, maxScroll] range so iOS/Android
+ *   rubber-band overscroll doesn't produce a false "scrolling down" delta.
+ * - A small delta threshold + short hysteresis window smooths out the
+ *   many tiny/rapid scroll events fired during touch momentum scrolling,
+ *   preventing on/off flicker.
+ *
  * @param {React.RefObject | object | number} targetOrOptions - ref to target element or options
  * @param {object} [maybeOptions] - configuration options
  */
@@ -33,6 +43,9 @@ export default function useScrollBlur(targetOrOptions, maybeOptions = {}) {
     reachRatio = 0.55,
     resetRatio = 0.8,
     resetScrollY = 70,
+    // minimum scroll movement (px) before we treat it as an intentional
+    // scroll-down — filters out sub-pixel jitter from touch momentum
+    minDelta = 2,
   } = config;
 
   const [isBlurred, setIsBlurred] = useState(false);
@@ -42,26 +55,40 @@ export default function useScrollBlur(targetOrOptions, maybeOptions = {}) {
   const lastScrollYRef = useRef(0);
   const hasReachedRef = useRef(false);
 
+  // cached, debounce-updated viewport height — avoids reading
+  // window.innerHeight on every single scroll tick, which on mobile
+  // changes as the address bar collapses/expands mid-scroll
+  const viewportHeightRef = useRef(
+    typeof window !== "undefined"
+      ? window.innerHeight || document.documentElement.clientHeight || 800
+      : 800
+  );
+  const resizeTimeoutRef = useRef(null);
+
   useEffect(() => {
-    // Initialize scroll position
-    const getScrollY = () =>
-      Math.max(
-        0,
+    const getMaxScroll = () => {
+      const doc = document.documentElement;
+      return Math.max(0, doc.scrollHeight - viewportHeightRef.current);
+    };
+
+    // clamp scrollY into valid bounds so iOS/Android rubber-band
+    // overscroll (negative or beyond-max values) can't produce a
+    // spurious "scrolling down" delta
+    const getScrollY = () => {
+      const raw =
         window.scrollY ||
-          window.pageYOffset ||
-          document.documentElement.scrollTop ||
-          0
-      );
+        window.pageYOffset ||
+        document.documentElement.scrollTop ||
+        0;
+      return Math.min(Math.max(raw, 0), getMaxScroll());
+    };
 
     lastScrollYRef.current = getScrollY();
 
-    // Check if target is already reached on mount / initial layout
     const checkInitialPosition = () => {
       if (!targetRef?.current) return;
       const rect = targetRef.current.getBoundingClientRect();
-      const viewportHeight =
-        window.innerHeight || document.documentElement.clientHeight || 800;
-      const reachThreshold = viewportHeight * reachRatio;
+      const reachThreshold = viewportHeightRef.current * reachRatio;
 
       if (rect.top <= reachThreshold) {
         hasReachedRef.current = true;
@@ -78,26 +105,26 @@ export default function useScrollBlur(targetOrOptions, maybeOptions = {}) {
       requestAnimationFrame(() => {
         const currentScrollY = getScrollY();
         const delta = currentScrollY - lastScrollYRef.current;
-        const isScrollingDown = delta > 0.5;
+        const isScrollingDown = delta > minDelta;
+        const isScrollingUp = delta < -minDelta;
 
         if (targetRef?.current) {
           const rect = targetRef.current.getBoundingClientRect();
-          const viewportHeight =
-            window.innerHeight || document.documentElement.clientHeight || 800;
-          const reachThreshold = viewportHeight * reachRatio;
-          const resetThreshold = viewportHeight * resetRatio;
+          const reachThreshold = viewportHeightRef.current * reachRatio;
+          const resetThreshold = viewportHeightRef.current * resetRatio;
 
-          // Once target element reaches the viewing area, mark as reached
           if (rect.top <= reachThreshold) {
             hasReachedRef.current = true;
           } else if (rect.top > resetThreshold || currentScrollY < resetScrollY) {
-            // User scrolled back up to hero/top section
             hasReachedRef.current = false;
           }
         }
 
-        // Only blur when scrolling down towards it AND not yet reached!
-        const shouldBlur = isScrollingDown && !hasReachedRef.current;
+        // only blur on a deliberate scroll-down that hasn't reached target;
+        // explicitly bail on scroll-up too so bounce-back after overscroll
+        // doesn't get misread
+        const shouldBlur =
+          isScrollingDown && !isScrollingUp && !hasReachedRef.current;
 
         if (shouldBlur) {
           if (!isBlurredRef.current) {
@@ -107,7 +134,6 @@ export default function useScrollBlur(targetOrOptions, maybeOptions = {}) {
 
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-          // If user stops scrolling before reaching, gracefully clear blur
           timeoutRef.current = setTimeout(() => {
             if (isBlurredRef.current) {
               isBlurredRef.current = false;
@@ -115,7 +141,6 @@ export default function useScrollBlur(targetOrOptions, maybeOptions = {}) {
             }
           }, delay);
         } else {
-          // If reached, scrolling up, or idle: immediately remove blur
           if (isBlurredRef.current) {
             isBlurredRef.current = false;
             setIsBlurred(false);
@@ -131,16 +156,40 @@ export default function useScrollBlur(targetOrOptions, maybeOptions = {}) {
       });
     };
 
+    // resize is handled SEPARATELY from scroll on purpose: on mobile,
+    // resize fires repeatedly mid-scroll as the address bar/toolbar
+    // collapses or expands. Running the full blur logic on every one of
+    // those events (as before, via the same handler) is the main source
+    // of mobile glitching. Here we only update the cached viewport
+    // height, debounced, without touching blur state directly.
+    const handleResize = () => {
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+      resizeTimeoutRef.current = setTimeout(() => {
+        viewportHeightRef.current =
+          window.innerHeight || document.documentElement.clientHeight || 800;
+      }, 150);
+    };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize, { passive: true });
+
+    // visualViewport fires more reliably than window resize for mobile
+    // address-bar/keyboard changes on iOS Safari and Chrome Android
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
 
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
     };
-  }, [targetRef, delay, reachRatio, resetRatio, resetScrollY]);
+  }, [targetRef, delay, reachRatio, resetRatio, resetScrollY, minDelta]);
 
   return isBlurred;
-}
+}
