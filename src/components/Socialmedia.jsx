@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { FaLinkedin, FaInstagram, FaWhatsapp } from "react-icons/fa";
 import { Mail, Phone, Download, ArrowUpRight } from "lucide-react";
 import useScrollBlur from "../effects/Usescrollblur";
@@ -37,7 +38,12 @@ const rows = [
 ];
 
 export default function SocialMedia() {
-  const isScrolling = useScrollBlur(150);
+  const sectionRef = useRef(null);
+  const isBlurred = useScrollBlur(sectionRef, {
+    delay: 180,
+    reachRatio: 0.55,
+    resetRatio: 0.8,
+  });
 
   const handleSaveContact = () => {
     // Generate vCard for quick contact saving
@@ -60,8 +66,9 @@ END:VCARD`;
 
   return (
     <div
-      className={`w-full flex justify-center py-6 px-4 transition-[filter] duration-300 ease-out ${
-        isScrolling ? "blur-sm" : "blur-0"
+      ref={sectionRef}
+      className={`w-full flex justify-center py-6 px-4 scroll-blur-container ${
+        isBlurred ? "scroll-blur-active" : "scroll-blur-inactive"
       }`}
     >
       <div className="w-full max-w-sm flex flex-col gap-2.5">
