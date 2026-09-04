@@ -1,5 +1,4 @@
 import React from 'react'
-import darkveil from '../assets/darkveil.png'
 
 const Header = () => {
     return (

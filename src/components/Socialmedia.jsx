@@ -1,5 +1,7 @@
 import { FaLinkedin, FaInstagram, FaWhatsapp } from "react-icons/fa";
 import { Mail, Phone, Download, ArrowUpRight } from "lucide-react";
+import useScrollBlur from "../effects/Usescrollblur";
+
 
 const rows = [
   { icon: <FaLinkedin className="w-7 h-7 text-[#0A66C2]" />, label: "LINKEDIN" },
@@ -15,8 +17,14 @@ const rows = [
 ];
 
 export default function SocialMedia() {
+  const isScrolling = useScrollBlur(150);
+
   return (
-    <div className=" w-full bg-black flex justify-center py-4 pt-20   px-3 ">
+    <div
+      className={` w-full  flex justify-center py-6 px-3 transition-[filter] duration-300 ease-out ${
+        isScrolling ? "blur-sm" : "blur-0"
+      }`}
+    >
       <div className="w-full max-w-sm">
         {rows.map((row, i) => (
           <div key={row.label}>

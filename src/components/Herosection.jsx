@@ -2,7 +2,7 @@ import React from 'react'
 
 const Herosection = () => {
   return (
-    <div className=' bg-black'>
+    <div className=' '>
         {/* IMAGE */}
         <div className='mt-12 w-full flex justify-center'>
           <div className='relative'>

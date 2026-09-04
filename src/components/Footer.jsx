@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="w-full bg-black border-t border-neutral-800 px-4 py-6">
+    <footer className="w-full  border-t border-neutral-800 px-4 py-6">
       <div className="max-w-sm mx-auto">
         <h2 className="text-white font-bold text-[15px] tracking-wide">
           MES COLLEGE COMMITTEE
