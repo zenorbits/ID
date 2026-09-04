@@ -39,11 +39,7 @@ const rows = [
 
 export default function SocialMedia() {
   const sectionRef = useRef(null);
-  const isBlurred = useScrollBlur(sectionRef, {
-    delay: 180,
-    reachRatio: 0.55,
-    resetRatio: 0.8,
-  });
+  useScrollBlur(sectionRef);
 
   const handleSaveContact = () => {
     // Generate vCard for quick contact saving
@@ -67,9 +63,7 @@ END:VCARD`;
   return (
     <div
       ref={sectionRef}
-      className={`w-full flex justify-center py-2 px-4 scroll-blur-container ${
-        isBlurred ? "scroll-blur-active" : "scroll-blur-inactive"
-      }`}
+      className="w-full flex justify-center py-2 px-4 scroll-blur-container"
     >
       <div className="w-full max-w-sm flex flex-col gap-2.5">
         <div className="text-center mb-1">

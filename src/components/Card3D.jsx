@@ -68,25 +68,10 @@ const Card3D = () => {
   };
 
   return (
-    <div className="w-full flex flex-col items-center justify-center my-6 select-none">
-      {/* 3D Lanyard Strap & Clip at Top */}
-      <div className="flex flex-col items-center pointer-events-none -mb-3 z-30">
-        {/* Lanyard Fabric Strap with TPC Geometric Pattern */}
-        <div className="w-8 h-10 bg-tpc-strip rounded-t-sm border-x border-neutral-700/80 shadow-md flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/15 pointer-events-none"></div>
-          <div className="absolute inset-y-0 w-1 bg-green-400/30 blur-[1px]"></div>
-        </div>
-        {/* Metallic Clip Buckle */}
-        <div className="w-14 h-4 bg-gradient-to-r from-neutral-500 via-neutral-200 to-neutral-500 rounded-sm shadow-lg border border-neutral-400/80 flex items-center justify-center -mt-0.5">
-          <div className="w-8 h-1.5 bg-neutral-900 rounded-full border border-neutral-700"></div>
-        </div>
-        {/* Metallic Ring */}
-        <div className="w-5 h-5 rounded-full border-2 border-neutral-300 shadow-inner -mt-1 bg-transparent"></div>
-      </div>
-
+    <div className="w-full flex flex-col items-center justify-center mt-2 mb-2 select-none">
       {/* 3D Perspective Scene Container */}
       <div
-        className="perspective-1200 cursor-pointer"
+        className="perspective-1200 cursor-pointer pt-14 pb-2"
         onMouseMove={handleMouseMove}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -106,6 +91,29 @@ const Card3D = () => {
               : 'transform 0.65s cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         >
+          {/* ATTACHED 3D Lanyard Strap & Metallic Buckle Assembly (Moves with Card) */}
+          <div
+            className="absolute -top-13 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-40"
+            style={{ transform: 'translateZ(12px)', transformStyle: 'preserve-3d' }}
+          >
+            {/* Lanyard Fabric Strap with TPC Geometric Pattern */}
+            <div className="w-9 h-11 bg-tpc-strip rounded-t-md border-x border-neutral-700/80 shadow-lg flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-black/15 pointer-events-none"></div>
+              <div className="absolute inset-y-0 w-1 bg-green-400/40 blur-[1px]"></div>
+              {/* Stitching lines */}
+              <div className="absolute left-1 inset-y-0 w-[1px] bg-neutral-950/40 border-l border-dashed border-white/20"></div>
+              <div className="absolute right-1 inset-y-0 w-[1px] bg-neutral-950/40 border-r border-dashed border-white/20"></div>
+            </div>
+
+            {/* Metallic Clip Buckle */}
+            <div className="w-14 h-4 bg-gradient-to-r from-neutral-500 via-neutral-100 to-neutral-500 rounded-sm shadow-xl border border-neutral-300 flex items-center justify-center -mt-0.5 z-10">
+              <div className="w-8 h-1.5 bg-neutral-900 rounded-full border border-neutral-700 shadow-inner"></div>
+            </div>
+
+            {/* Metallic Ring looping directly through the card hole */}
+            <div className="w-5 h-6 rounded-full border-[2.5px] border-neutral-200 shadow-[0_2px_6px_rgba(0,0,0,0.8)] -mt-1 bg-transparent z-20"></div>
+          </div>
+
           {/* Polished bevel highlights and inner shadow on the strip border */}
           <div className="absolute inset-0 rounded-[34px] border border-white/25 pointer-events-none z-20"></div>
           <div className="absolute inset-0 rounded-[34px] shadow-[inset_0_0_10px_rgba(0,0,0,0.7)] pointer-events-none z-20"></div>
