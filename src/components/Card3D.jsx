@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ShieldCheck, Wifi, Sparkles, IdCard, Mail, Building2, CalendarClock } from 'lucide-react';
+import { ShieldCheck, Wifi, Sparkles, Mail, Building2 } from 'lucide-react';
 
 const FLIP_MS = 900;
 
@@ -292,15 +292,6 @@ const Card3D = () => {
 
                   <div className="flex flex-col gap-2.5 mt-1">
                     <div className="flex items-center gap-2.5">
-                      <IdCard className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                      <span className="text-[11px] text-neutral-400">
-                        ID No.{' '}
-                        <span className="text-neutral-200 font-semibold">
-                          TPC-2026-001
-                        </span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
                       <Building2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
                       <span className="text-[11px] text-neutral-400">
                         MES College of Engineering
@@ -310,15 +301,6 @@ const Card3D = () => {
                       <Mail className="w-3.5 h-3.5 text-green-400 shrink-0" />
                       <span className="text-[11px] text-neutral-400">
                         chirayudurgude@gmail.com
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <CalendarClock className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                      <span className="text-[11px] text-neutral-400">
-                        Valid Thru{' '}
-                        <span className="text-neutral-200 font-semibold">
-                          2026 – 2027
-                        </span>
                       </span>
                     </div>
                   </div>
