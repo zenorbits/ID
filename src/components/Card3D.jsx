@@ -56,13 +56,10 @@ const Card3D = ({ member }) => {
     .slice(0, 2)
     .join('');
 
-  const [isHovered, setIsHovered] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isFlipping, setIsFlipping] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(REST);
 
-  const tiltRef = useRef(null);
   const cardRef = useRef(null);
   const pressRef = useRef(null);
   const dragTargetRef = useRef(REST);
@@ -75,47 +72,6 @@ const Card3D = ({ member }) => {
   const flipTimerRef = useRef(null);
   const lastDragEndRef = useRef(0);
   const longPressTimerRef = useRef(null);
-
-  // 3D Tilt angles
-  const [transformStyle, setTransformStyle] = useState({
-    rotateX: 0,
-    rotateY: 0,
-  });
-
-  const updateTilt = (clientX, clientY, maxDeg) => {
-    if (!tiltRef.current || pressRef.current || isFlippingRef.current) return;
-    const rect = tiltRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    setTransformStyle({
-      rotateX: -((clientY - rect.top - centerY) / centerY) * maxDeg,
-      rotateY: ((clientX - rect.left - centerX) / centerX) * maxDeg,
-    });
-  };
-
-  const handleMouseMove = (e) => updateTilt(e.clientX, e.clientY, 16);
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    setTransformStyle({
-      rotateX: 0,
-      rotateY: 0,
-    });
-  };
-
-  // Mobile Touch Support
-  const handleTouchMove = (e) => {
-    if (!e.touches[0]) return;
-    updateTilt(e.touches[0].clientX, e.touches[0].clientY, 14);
-  };
-
-  const handleTouchEnd = () => {
-    handleMouseLeave();
-  };
 
   // Damped spring stepped every frame toward the pointer (held) or rest (released).
   const tick = useCallback(function step(now) {
@@ -185,7 +141,6 @@ const Card3D = ({ member }) => {
     cardRef.current?.setPointerCapture(pointerId);
     isDraggingRef.current = true;
     setIsDragging(true);
-    setTransformStyle({ rotateX: 0, rotateY: 0 });
   };
 
   const handlePointerDown = (e) => {
@@ -252,14 +207,11 @@ const Card3D = ({ member }) => {
     if (performance.now() - lastDragEndRef.current < DRAG_DBLCLICK_GUARD_MS) return;
 
     setIsFlipped((flipped) => !flipped);
-    // Hold the card flat and still for the whole flip so it doesn't wobble.
+    // Ignore drags until the flip finishes.
     isFlippingRef.current = true;
-    setIsFlipping(true);
-    setTransformStyle({ rotateX: 0, rotateY: 0 });
     clearTimeout(flipTimerRef.current);
     flipTimerRef.current = setTimeout(() => {
       isFlippingRef.current = false;
-      setIsFlipping(false);
     }, FLIP_MS);
   };
 
@@ -283,27 +235,13 @@ const Card3D = ({ member }) => {
     <div className="w-full flex flex-col items-center justify-center mt-2 mb-2 select-none">
       {/* 3D Perspective Scene Container */}
       <div
-        className="perspective-1200 cursor-pointer pt-14 pb-2"
-        onMouseMove={handleMouseMove}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className="perspective-1200 pt-14 pb-2"
         style={{ perspective: '1200px' }}
       >
-        {/* Tilt Wrapper — hover tilt applies to strap and card together */}
+        {/* Strap + card stage */}
         <div
-          ref={tiltRef}
           className="relative w-[326px] sm:w-[356px] h-[516px] preserve-3d"
-          style={{
-            transform: `rotateX(${transformStyle.rotateX}deg) rotateY(${transformStyle.rotateY}deg)`,
-            transformStyle: 'preserve-3d',
-            transition: isFlipping
-              ? 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-              : isHovered && !isDragging
-              ? 'transform 0.12s ease-out'
-              : 'transform 0.65s cubic-bezier(0.23, 1, 0.32, 1)',
-          }}
+          style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Lanyard Fabric Strap — top end stays anchored, the rest stretches to follow the card */}
           <div
