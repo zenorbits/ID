@@ -3,59 +3,72 @@ import { FaLinkedin, FaInstagram, FaWhatsapp } from "react-icons/fa";
 import { Mail, Phone, Download, ArrowUpRight } from "lucide-react";
 import useScrollBlur from "../effects/Usescrollblur";
 
-const rows = [
-  {
-    icon: <FaLinkedin className="w-6 h-6 text-[#0A66C2]" />,
-    label: "LINKEDIN",
-    href: "https://www.linkedin.com/in/chirayu-durgude/",
-  },
-  {
-    icon: <FaInstagram className="w-6 h-6 text-[#E1306C]" />,
-    label: "INSTAGRAM",
-    href: "https://www.instagram.com/",
-  },
-  {
-    icon: <FaWhatsapp className="w-6 h-6 text-[#25D366]" />,
-    label: "WHATSAPP",
-    href: "https://wa.me/",
-  },
-  {
-    icon: <Mail className="w-6 h-6 text-neutral-200" strokeWidth={1.6} />,
-    label: "EMAIL",
-    href: "mailto:chirayudurgude@gmail.com",
-  },
-  {
-    icon: <Phone className="w-6 h-6 text-neutral-200" strokeWidth={1.6} />,
-    label: "PHONE",
-    href: "tel:+919876543210",
-  },
-  {
-    icon: <Download className="w-6 h-6 text-green-400" strokeWidth={1.6} />,
-    label: "SAVE TO CONTACTS",
-    subtitle: "MES College Committee",
-    isDownload: true,
-  },
-];
+const digits = (value) => value.replace(/\D/g, "");
 
-export default function SocialMedia() {
+// Escape characters that are special inside vCard text values.
+const vcardText = (value) =>
+  value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
+
+const buildRows = (member) => {
+  const whatsapp = digits(member.whatsapp || member.phone);
+  return [
+    member.linkedin && {
+      icon: <FaLinkedin className="w-6 h-6 text-[#0A66C2]" />,
+      label: "LINKEDIN",
+      href: member.linkedin,
+    },
+    member.instagram && {
+      icon: <FaInstagram className="w-6 h-6 text-[#E1306C]" />,
+      label: "INSTAGRAM",
+      href: member.instagram,
+    },
+    whatsapp && {
+      icon: <FaWhatsapp className="w-6 h-6 text-[#25D366]" />,
+      label: "WHATSAPP",
+      href: `https://wa.me/${whatsapp}`,
+    },
+    member.email && {
+      icon: <Mail className="w-6 h-6 text-neutral-200" strokeWidth={1.6} />,
+      label: "EMAIL",
+      href: `mailto:${member.email}`,
+    },
+    member.phone && {
+      icon: <Phone className="w-6 h-6 text-neutral-200" strokeWidth={1.6} />,
+      label: "PHONE",
+      href: `tel:${member.phone.replace(/[^\d+]/g, "")}`,
+    },
+    {
+      icon: <Download className="w-6 h-6 text-green-400" strokeWidth={1.6} />,
+      label: "SAVE TO CONTACTS",
+      subtitle: "MES College Committee",
+      isDownload: true,
+    },
+  ].filter(Boolean);
+};
+
+export default function SocialMedia({ member }) {
   const sectionRef = useRef(null);
   useScrollBlur(sectionRef);
+  const rows = buildRows(member);
 
   const handleSaveContact = () => {
     // Generate vCard for quick contact saving
-    const vcard = `BEGIN:VCARD
-VERSION:3.0
-FN:Chirayu Durgude
-TITLE:Technical Head
-ORG:Training & Placement Committee; MES College of Engineering
-EMAIL:chirayudurgude@gmail.com
-NOTE:Official TPC Digital Pass 2026-2027
-END:VCARD`;
-    const blob = new Blob([vcard], { type: "text/vcard" });
+    const lines = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${vcardText(member.name)}`,
+      `TITLE:${vcardText(member.role)}`,
+      `ORG:${vcardText(member.committee)};${vcardText(member.college)}`,
+      member.email && `EMAIL:${vcardText(member.email)}`,
+      member.phone && `TEL:${vcardText(member.phone)}`,
+      "NOTE:Official TPC Digital Pass 2026-2027",
+      "END:VCARD",
+    ].filter(Boolean);
+    const blob = new Blob([lines.join("\r\n")], { type: "text/vcard" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "Chirayu_Durgude_TPC.vcf";
+    a.download = `${member.name.replace(/[^\w]+/g, "_")}_TPC.vcf`;
     a.click();
     URL.revokeObjectURL(url);
   };

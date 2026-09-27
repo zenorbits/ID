@@ -1,11 +1,11 @@
 import React from 'react';
 import Card3D from './Card3D';
 
-const Herosection = () => {
+const Herosection = ({ member }) => {
   return (
     <section className="w-full flex flex-col items-center justify-center px-4 pt-2 ">
       {/* 3D Holographic Tilt & Flip Card Component */}
-      <Card3D />
+      <Card3D member={member} />
     </section>
   );
 };
