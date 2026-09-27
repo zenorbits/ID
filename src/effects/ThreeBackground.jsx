@@ -79,47 +79,7 @@ const ThreeBackground = () => {
     const particles = new THREE.Points(geometry, particleMaterial);
     scene.add(particles);
 
-    // 2. Wireframe 3D Cyber Geometries (Floating in deep space)
-    const ringGroup = new THREE.Group();
-
-    // Outer Gyro Ring
-    const torusGeom1 = new THREE.TorusGeometry(14, 0.08, 16, 100);
-    const torusMat1 = new THREE.MeshBasicMaterial({
-      color: 0x22c55e,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.18,
-    });
-    const ring1 = new THREE.Mesh(torusGeom1, torusMat1);
-    ringGroup.add(ring1);
-
-    // Inner Gyro Ring
-    const torusGeom2 = new THREE.TorusGeometry(10, 0.06, 16, 80);
-    const torusMat2 = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.14,
-    });
-    const ring2 = new THREE.Mesh(torusGeom2, torusMat2);
-    ring2.rotation.x = Math.PI / 3;
-    ringGroup.add(ring2);
-
-    // Cyber Floating Icosahedron
-    const icoGeom = new THREE.IcosahedronGeometry(6, 1);
-    const icoMat = new THREE.MeshBasicMaterial({
-      color: 0x22c55e,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.12,
-    });
-    const ico = new THREE.Mesh(icoGeom, icoMat);
-    ringGroup.add(ico);
-
-    ringGroup.position.set(0, 2, -10);
-    scene.add(ringGroup);
-
-    // 3. Mouse Interaction & Parallax
+    // 2. Mouse Interaction & Parallax
     let mouseX = 0;
     let mouseY = 0;
     let targetX = 0;
@@ -162,16 +122,6 @@ const ThreeBackground = () => {
       particles.rotation.y = elapsedTime * 0.03;
       particles.rotation.x = elapsedTime * 0.015;
 
-      // Gyro rings rotation
-      ringGroup.rotation.x = elapsedTime * 0.15;
-      ringGroup.rotation.y = elapsedTime * 0.2;
-      ringGroup.rotation.z = Math.sin(elapsedTime * 0.3) * 0.1;
-
-      ring1.rotation.z = elapsedTime * 0.1;
-      ring2.rotation.y = -elapsedTime * 0.15;
-      ico.rotation.x = -elapsedTime * 0.12;
-      ico.rotation.y = elapsedTime * 0.18;
-
       renderer.render(scene, camera);
     };
 
@@ -191,12 +141,6 @@ const ThreeBackground = () => {
       geometry.dispose();
       particleMaterial.dispose();
       particleTexture.dispose();
-      torusGeom1.dispose();
-      torusMat1.dispose();
-      torusGeom2.dispose();
-      torusMat2.dispose();
-      icoGeom.dispose();
-      icoMat.dispose();
       renderer.dispose();
     };
   }, []);
