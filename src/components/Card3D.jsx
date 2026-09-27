@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ShieldCheck, Wifi, Sparkles, IdCard, Mail, Building2, CalendarClock } from 'lucide-react';
+import { ShieldCheck, Wifi, Sparkles, Mail, Building2 } from 'lucide-react';
 
 const FLIP_MS = 900;
 
@@ -18,7 +18,11 @@ const CardShellDecor = () => (
   </>
 );
 
-const Card3D = () => {
+const Card3D = ({ member }) => {
+  const description =
+    member.description ||
+    `Official digital identity pass issued to the ${member.role} of the ${member.committee}. This pass grants access to committee events, resources, and verified TPC digital services.`;
+
   const [isHovered, setIsHovered] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -215,8 +219,8 @@ const Card3D = () => {
                     {/* Photo frame */}
                     <div className="relative w-[180px] h-[215px] sm:w-[200px] sm:h-[235px] rounded-[22px] p-[2px] bg-gradient-to-b from-neutral-600 via-neutral-700 to-neutral-800 shadow-2xl overflow-hidden border border-neutral-600/40">
                       <img
-                        src="https://v0-chirayu-durgude.vercel.app/profile.png"
-                        alt="Chirayu Durgude"
+                        src={member.photo}
+                        alt={member.name}
                         className="w-full h-full object-cover rounded-[20px]"
                       />
                       {/* Corner cyber brackets */}
@@ -245,15 +249,15 @@ const Card3D = () => {
                   style={{ transform: 'translateZ(30px)' }}
                 >
                   <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-                    Chirayu Durgude
+                    {member.name}
                   </h2>
                   <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-green-950/60 border border-green-500/50">
                     <span className="text-[12px] font-bold text-green-400 tracking-widest uppercase">
-                      Technical Head
+                      {member.role}
                     </span>
                   </div>
                   <p className="text-[11px] text-neutral-400 tracking-wider uppercase font-medium mt-0.5">
-                    Training &amp; Placement Committee
+                    {member.committee}
                   </p>
                 </div>
               </div>
@@ -283,42 +287,21 @@ const Card3D = () => {
                       Card Description
                     </span>
                     <p className="text-[12px] text-neutral-300 leading-relaxed mt-1.5">
-                      Official digital identity pass issued to the Technical Head
-                      of the Training &amp; Placement Committee. This pass grants
-                      access to committee events, resources, and verified TPC
-                      digital services.
+                      {description}
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-2.5 mt-1">
                     <div className="flex items-center gap-2.5">
-                      <IdCard className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                      <span className="text-[11px] text-neutral-400">
-                        ID No.{' '}
-                        <span className="text-neutral-200 font-semibold">
-                          TPC-2026-001
-                        </span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
                       <Building2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
                       <span className="text-[11px] text-neutral-400">
-                        MES College of Engineering
+                        {member.college}
                       </span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <Mail className="w-3.5 h-3.5 text-green-400 shrink-0" />
                       <span className="text-[11px] text-neutral-400">
-                        chirayudurgude@gmail.com
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <CalendarClock className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                      <span className="text-[11px] text-neutral-400">
-                        Valid Thru{' '}
-                        <span className="text-neutral-200 font-semibold">
-                          2026 – 2027
-                        </span>
+                        {member.email}
                       </span>
                     </div>
                   </div>
