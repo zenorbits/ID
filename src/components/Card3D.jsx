@@ -18,7 +18,7 @@ const FLIP_MS = 900;
 const DRAG_DBLCLICK_GUARD_MS = 400;
 
 // Strap geometry, relative to the card's top edge (px).
-const STRAP_ANCHOR_Y = -52;
+const STRAP_ANCHOR_Y = -122;
 const BUCKLE_TOP_Y = -10;
 const STRAP_REST_LEN = BUCKLE_TOP_Y - STRAP_ANCHOR_Y;
 const STRAP_OVERLAP = 2;
@@ -235,7 +235,7 @@ const Card3D = ({ member }) => {
     <div className="w-full flex flex-col items-center justify-center mt-2 mb-2 select-none">
       {/* 3D Perspective Scene Container */}
       <div
-        className="perspective-1200 pt-14 pb-2"
+        className="perspective-1200 pt-32 pb-2"
         style={{ perspective: '1200px' }}
       >
         {/* Strap + card stage */}
