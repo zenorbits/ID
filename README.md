@@ -7,10 +7,11 @@ Each person's page is generated from a row in `src/data/members.csv` and is serv
 | Column | Notes |
 | --- | --- |
 | `id` | Used in the URL, e.g. `2` → `/2` |
-| `name`, `role`, `committee`, `college`, `email` | Shown on the card |
+| `name`, `role`, `email` | Shown on the card |
+| `committee`, `college` | Optional; default to Training & Placement Committee / MES College of Engineering |
 | `phone` | Phone button and saved contact; also used for WhatsApp if `whatsapp` is empty |
 | `linkedin`, `instagram`, `whatsapp` | Full URLs (WhatsApp: number only). Empty columns hide the button |
-| `photo` | Image URL for the card photo |
+| `photo` | Image URL for the card photo; leave empty to show the person's initials |
 | `description` | Back of the card. Leave empty for a default based on role and committee |
 
 Wrap any value containing a comma in double quotes. Rebuild/redeploy after editing the CSV.
