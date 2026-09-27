@@ -34,7 +34,7 @@ const App = () => {
       {/* Actual page content sitting in front of 3D canvas */}
       <div className="relative z-10">
         <LoadingScreen minDuration={1200} />
-        <Header />
+        <Header member={member} />
         {member ? (
           <>
             <Herosection member={member} />
