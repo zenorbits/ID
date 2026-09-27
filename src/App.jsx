@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import Header from './components/Header'
 import Herosection from './components/Herosection'
 import Socialmedia from './components/Socialmedia'
@@ -15,9 +15,6 @@ const resolveMember = () => {
 
 const App = () => {
   const member = resolveMember()
-  useEffect(() => {
-    document.title = member ? `${member.name} · TPC ID` : 'ID not found · TPC ID'
-  }, [member])
 
   return (
     <div className='relative min-h-screen text-white font-mono overflow-x-hidden bg-black'>
