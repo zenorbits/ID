@@ -1,15 +1,34 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ShieldCheck, Wifi, Sparkles, IdCard, Mail, Building2, CalendarClock } from 'lucide-react';
 
-// How far the card can be pulled from its resting position, in px.
-const MAX_PULL = 70;
-// How quickly the rendered offset catches up to the pointer/rest target (0-1).
-const LERP_FACTOR = 0.22;
-const SETTLE_EPSILON = 0.05;
+// Soft pull limits (px): a lanyard gives a lot downward, some sideways, little upward.
+const PULL_LIMIT = { x: 45, down: 110, up: 16 };
+// Pointer must travel this far before a press becomes a drag, so clicks and
+// double-clicks never nudge the card.
+const DRAG_THRESHOLD = 5;
+// Critically damped while held (tight follow), underdamped on release (elastic snap-back).
+const SPRING_HELD = { k: 420, c: 42 };
+const SPRING_RELEASE = { k: 180, c: 16 };
+const FLIP_MS = 900;
+// Ignore a double-click that lands right after a drag (drag + click reads as dblclick).
+const DRAG_DBLCLICK_GUARD_MS = 400;
+
+// Strap geometry, relative to the card's top edge (px).
+const STRAP_ANCHOR_Y = -52;
+const BUCKLE_TOP_Y = -10;
+const STRAP_REST_LEN = BUCKLE_TOP_Y - STRAP_ANCHOR_Y;
+const STRAP_OVERLAP = 2;
+const STRAP_WIDTH = 36;
+const CARD_HALF_HEIGHT = 258;
+const SWING_ARM = CARD_HALF_HEIGHT - BUCKLE_TOP_Y;
+
+const REST = { x: 0, y: 0 };
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+const toRad = (deg) => (deg * Math.PI) / 180;
 
 // Rubber-band easing so the pull feels elastic and resists near the limit.
 const rubberBand = (delta, max) =>
-  Math.sign(delta) * max * (1 - Math.exp(-Math.abs(delta) / (max * 0.85)));
+  Math.sign(delta) * max * (1 - Math.exp(-Math.abs(delta) / max));
 
 const CardShellDecor = () => (
   <>
@@ -24,15 +43,22 @@ const CardShellDecor = () => (
 const Card3D = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isFlipping, setIsFlipping] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState(REST);
 
+  const tiltRef = useRef(null);
   const cardRef = useRef(null);
-  const dragStartRef = useRef({ x: 0, y: 0 });
-  const dragTargetRef = useRef({ x: 0, y: 0 });
-  const offsetRef = useRef({ x: 0, y: 0 });
-  const isDraggingRef = useRef(false);
+  const pressRef = useRef(null);
+  const dragTargetRef = useRef(REST);
+  const posRef = useRef({ x: 0, y: 0 });
+  const velRef = useRef({ x: 0, y: 0 });
+  const lastFrameRef = useRef(null);
   const rafIdRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const isFlippingRef = useRef(false);
+  const flipTimerRef = useRef(null);
+  const lastDragEndRef = useRef(0);
 
   // 3D Tilt angles
   const [transformStyle, setTransformStyle] = useState({
@@ -40,24 +66,18 @@ const Card3D = () => {
     rotateY: 0,
   });
 
-  const handleMouseMove = (e) => {
-    if (!cardRef.current || isDragging) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
+  const updateTilt = (clientX, clientY, maxDeg) => {
+    if (!tiltRef.current || pressRef.current || isFlippingRef.current) return;
+    const rect = tiltRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-
-    // Calculate rotation (-16 to 16 deg)
-    const rotY = ((x - centerX) / centerX) * 16;
-    const rotX = -((y - centerY) / centerY) * 16;
-
     setTransformStyle({
-      rotateX: rotX,
-      rotateY: rotY,
+      rotateX: -((clientY - rect.top - centerY) / centerY) * maxDeg,
+      rotateY: ((clientX - rect.left - centerX) / centerX) * maxDeg,
     });
   };
+
+  const handleMouseMove = (e) => updateTilt(e.clientX, e.clientY, 16);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -73,47 +93,49 @@ const Card3D = () => {
 
   // Mobile Touch Support
   const handleTouchMove = (e) => {
-    if (!cardRef.current || !e.touches[0] || isDragging) return;
-    const touch = e.touches[0];
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rotY = ((x - centerX) / centerX) * 14;
-    const rotX = -((y - centerY) / centerY) * 14;
-
-    setTransformStyle({
-      rotateX: rotX,
-      rotateY: rotY,
-    });
+    if (!e.touches[0]) return;
+    updateTilt(e.touches[0].clientX, e.touches[0].clientY, 14);
   };
-
 
   const handleTouchEnd = () => {
     handleMouseLeave();
   };
 
-  // Spring loop: smoothly eases the rendered offset toward its target every
-  // frame, whether that target is the pointer (while dragging) or rest (0,0).
-  const tick = useCallback(() => {
-    const target = isDraggingRef.current ? dragTargetRef.current : { x: 0, y: 0 };
-    const current = offsetRef.current;
-    const nx = current.x + (target.x - current.x) * LERP_FACTOR;
-    const ny = current.y + (target.y - current.y) * LERP_FACTOR;
+  // Damped spring stepped every frame toward the pointer (held) or rest (released).
+  const tick = useCallback(function step(now) {
+    const last = lastFrameRef.current ?? now;
+    const dt = Math.min((now - last) / 1000, 1 / 30);
+    lastFrameRef.current = now;
+
+    const held = isDraggingRef.current;
+    const target = held ? dragTargetRef.current : REST;
+    const { k, c } = held ? SPRING_HELD : SPRING_RELEASE;
+    const pos = posRef.current;
+    const vel = velRef.current;
+
+    vel.x += (k * (target.x - pos.x) - c * vel.x) * dt;
+    vel.y += (k * (target.y - pos.y) - c * vel.y) * dt;
+    pos.x += vel.x * dt;
+    pos.y += vel.y * dt;
 
     const settled =
-      !isDraggingRef.current &&
-      Math.abs(target.x - nx) < SETTLE_EPSILON &&
-      Math.abs(target.y - ny) < SETTLE_EPSILON;
+      !held &&
+      Math.abs(pos.x) < 0.05 &&
+      Math.abs(pos.y) < 0.05 &&
+      Math.abs(vel.x) < 0.5 &&
+      Math.abs(vel.y) < 0.5;
 
-    const next = settled ? target : { x: nx, y: ny };
-    offsetRef.current = next;
-    setDragOffset(next);
+    if (settled) {
+      posRef.current = { x: 0, y: 0 };
+      velRef.current = { x: 0, y: 0 };
+      lastFrameRef.current = null;
+      rafIdRef.current = null;
+      setDragOffset(REST);
+      return;
+    }
 
-    rafIdRef.current = settled ? null : requestAnimationFrame(tick);
+    setDragOffset({ x: pos.x, y: pos.y });
+    rafIdRef.current = requestAnimationFrame(step);
   }, []);
 
   const ensureLoop = useCallback(() => {
@@ -125,53 +147,85 @@ const Card3D = () => {
   useEffect(() => {
     return () => {
       if (rafIdRef.current != null) cancelAnimationFrame(rafIdRef.current);
+      clearTimeout(flipTimerRef.current);
     };
   }, []);
 
   // Drag-to-pull lanyard interaction
   const handlePointerDown = (e) => {
-    if (!cardRef.current) return;
-    cardRef.current.setPointerCapture(e.pointerId);
-    // Offset the drag origin by the card's current position so the pointer
-    // doesn't "jump" the card if a new drag starts before it fully settles.
-    dragStartRef.current = {
-      x: e.clientX - offsetRef.current.x,
-      y: e.clientY - offsetRef.current.y,
-    };
-    isDraggingRef.current = true;
-    setIsDragging(true);
-    ensureLoop();
+    if (isFlippingRef.current) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pressRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
   };
 
   const handlePointerMove = (e) => {
-    if (!isDraggingRef.current) return;
-    const rawX = e.clientX - dragStartRef.current.x;
-    const rawY = e.clientY - dragStartRef.current.y;
+    const press = pressRef.current;
+    if (!press || press.id !== e.pointerId) return;
+
+    const rawX = e.clientX - press.x;
+    const rawY = e.clientY - press.y;
+
+    if (!isDraggingRef.current) {
+      if (Math.hypot(rawX, rawY) < DRAG_THRESHOLD) return;
+      cardRef.current?.setPointerCapture(e.pointerId);
+      isDraggingRef.current = true;
+      setIsDragging(true);
+      setTransformStyle({ rotateX: 0, rotateY: 0 });
+    }
+
     dragTargetRef.current = {
-      x: rubberBand(rawX, MAX_PULL),
-      y: rubberBand(rawY, MAX_PULL),
+      x: rubberBand(rawX, PULL_LIMIT.x),
+      y: rubberBand(rawY, rawY >= 0 ? PULL_LIMIT.down : PULL_LIMIT.up),
     };
     ensureLoop();
   };
 
-  const handlePointerUp = (e) => {
+  const handlePointerEnd = (e) => {
+    const press = pressRef.current;
+    if (!press || press.id !== e.pointerId) return;
+    pressRef.current = null;
     if (!isDraggingRef.current) return;
-    if (cardRef.current) {
+
+    if (cardRef.current?.hasPointerCapture(e.pointerId)) {
       cardRef.current.releasePointerCapture(e.pointerId);
     }
     isDraggingRef.current = false;
+    lastDragEndRef.current = performance.now();
     setIsDragging(false);
     ensureLoop();
   };
 
   const handleDoubleClick = () => {
+    if (isDraggingRef.current) return;
+    if (performance.now() - lastDragEndRef.current < DRAG_DBLCLICK_GUARD_MS) return;
+
     setIsFlipped((flipped) => !flipped);
+    // Hold the card flat and still for the whole flip so it doesn't wobble.
+    isFlippingRef.current = true;
+    setIsFlipping(true);
+    setTransformStyle({ rotateX: 0, rotateY: 0 });
+    clearTimeout(flipTimerRef.current);
+    flipTimerRef.current = setTimeout(() => {
+      isFlippingRef.current = false;
+      setIsFlipping(false);
+    }, FLIP_MS);
   };
 
-  // Subtle swing + forward pop derived from the (already smoothed) drag offset.
-  const swingZ = Math.max(-14, Math.min(14, dragOffset.x * 0.12));
-  const popZ = Math.min(Math.hypot(dragOffset.x, dragOffset.y) * 0.35, 26);
-  const isSettled = dragOffset.x === 0 && dragOffset.y === 0;
+  // The card swings about its centre, leaning its top back toward the strap anchor.
+  const swingDeg = clamp(-dragOffset.x * 0.14, -10, 10);
+  const swingRad = toRad(swingDeg);
+
+  // Where the buckle actually is after translate + swing, and the strap that reaches it
+  // from its fixed anchor.
+  const buckleX = dragOffset.x + SWING_ARM * Math.sin(swingRad);
+  const buckleY = BUCKLE_TOP_Y + dragOffset.y + SWING_ARM * (1 - Math.cos(swingRad));
+  const strapDY = buckleY - STRAP_ANCHOR_Y;
+  const strapLen = Math.max(Math.hypot(buckleX, strapDY), 1);
+  const strapAngle = (-Math.atan2(buckleX, strapDY) * 180) / Math.PI;
+  const strapStretch = strapLen / STRAP_REST_LEN;
+  // Elastic thins as it stretches.
+  const strapWidthRatio = clamp(1 / Math.sqrt(strapStretch), 0.7, 1);
+  const strapWidth = STRAP_WIDTH * strapWidthRatio;
 
   return (
     <div className="w-full flex flex-col items-center justify-center mt-2 mb-2 select-none">
@@ -185,43 +239,63 @@ const Card3D = () => {
         onTouchEnd={handleTouchEnd}
         style={{ perspective: '1200px' }}
       >
-        {/* 3D Transform Card Root — handles tilt & lanyard-pull drag */}
+        {/* Tilt Wrapper — hover tilt applies to strap and card together */}
         <div
-          ref={cardRef}
-          className="relative w-[326px] sm:w-[356px] h-[516px] preserve-3d touch-none"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          onDoubleClick={handleDoubleClick}
+          ref={tiltRef}
+          className="relative w-[326px] sm:w-[356px] h-[516px] preserve-3d"
           style={{
-            transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, ${popZ}px) rotateZ(${swingZ}deg) rotateX(${transformStyle.rotateX}deg) rotateY(${transformStyle.rotateY}deg)`,
+            transform: `rotateX(${transformStyle.rotateX}deg) rotateY(${transformStyle.rotateY}deg)`,
             transformStyle: 'preserve-3d',
-            cursor: isDragging ? 'grabbing' : 'grab',
-            transition:
-              isDragging || !isSettled
-                ? 'none'
-                : isHovered
-                ? 'transform 0.12s ease-out'
-                : 'transform 0.65s cubic-bezier(0.23, 1, 0.32, 1)',
+            transition: isFlipping
+              ? 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+              : isHovered && !isDragging
+              ? 'transform 0.12s ease-out'
+              : 'transform 0.65s cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         >
-          {/* ATTACHED 3D Lanyard Strap & Metallic Buckle Assembly (fixed — does not flip with the card) */}
+          {/* Lanyard Fabric Strap — top end stays anchored, the rest stretches to follow the card */}
           <div
-            className="absolute -top-13 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-40"
-            style={{ transform: 'translateZ(12px)', transformStyle: 'preserve-3d' }}
+            className="absolute bg-tpc-strip rounded-t-md border-x border-neutral-700/80 shadow-lg flex items-center justify-center overflow-hidden pointer-events-none z-40"
+            style={{
+              top: STRAP_ANCHOR_Y,
+              left: '50%',
+              width: strapWidth,
+              height: strapLen + STRAP_OVERLAP,
+              marginLeft: -strapWidth / 2,
+              transformOrigin: 'top center',
+              transform: `translateZ(12px) rotate(${strapAngle}deg)`,
+              // Uniform scale only: the SVG letterboxes if its aspect ratio changes.
+              backgroundSize: `${60 * strapWidthRatio}px ${40 * strapWidthRatio}px`,
+            }}
           >
-            {/* Lanyard Fabric Strap with TPC Geometric Pattern */}
-            <div className="w-9 h-11 bg-tpc-strip rounded-t-md border-x border-neutral-700/80 shadow-lg flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-black/15 pointer-events-none"></div>
-              <div className="absolute inset-y-0 w-1 bg-green-400/40 blur-[1px]"></div>
-              {/* Stitching lines */}
-              <div className="absolute left-1 inset-y-0 w-[1px] bg-neutral-950/40 border-l border-dashed border-white/20"></div>
-              <div className="absolute right-1 inset-y-0 w-[1px] bg-neutral-950/40 border-r border-dashed border-white/20"></div>
-            </div>
+            <div className="absolute inset-0 bg-black/15 pointer-events-none"></div>
+            <div className="absolute inset-y-0 w-1 bg-green-400/40 blur-[1px]"></div>
+            {/* Stitching lines */}
+            <div className="absolute left-1 inset-y-0 w-[1px] bg-neutral-950/40 border-l border-dashed border-white/20"></div>
+            <div className="absolute right-1 inset-y-0 w-[1px] bg-neutral-950/40 border-r border-dashed border-white/20"></div>
+          </div>
 
-            {/* Metallic Clip Buckle */}
-            <div className="w-14 h-4 bg-gradient-to-r from-neutral-500 via-neutral-100 to-neutral-500 rounded-sm shadow-xl border border-neutral-300 flex items-center justify-center -mt-0.5 z-10">
+          {/* Draggable Card — pulled on the lanyard, springs back on release */}
+          <div
+            ref={cardRef}
+            className="absolute inset-0 preserve-3d touch-none"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
+            onDoubleClick={handleDoubleClick}
+            style={{
+              transform: `translate3d(${dragOffset.x}px, ${dragOffset.y}px, 0) rotateZ(${swingDeg}deg)`,
+              transformStyle: 'preserve-3d',
+              cursor: isDragging ? 'grabbing' : 'grab',
+            }}
+          >
+          {/* Metallic Clip Buckle + Ring — attached to the card, so they travel with it */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-40"
+            style={{ top: BUCKLE_TOP_Y, transform: 'translateZ(12px)', transformStyle: 'preserve-3d' }}
+          >
+            <div className="w-14 h-4 bg-gradient-to-r from-neutral-500 via-neutral-100 to-neutral-500 rounded-sm shadow-xl border border-neutral-300 flex items-center justify-center z-10">
               <div className="w-8 h-1.5 bg-neutral-900 rounded-full border border-neutral-700 shadow-inner"></div>
             </div>
 
@@ -415,6 +489,7 @@ const Card3D = () => {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
