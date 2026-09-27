@@ -43,8 +43,19 @@ const parseCsv = (text) => {
 const [header, ...records] = parseCsv(csv);
 const keys = header.map((h) => h.trim());
 
-export const members = records.map((cells) =>
-  Object.fromEntries(keys.map((key, i) => [key, (cells[i] ?? '').trim()])),
-);
+// Shared by everyone; a CSV column with the same name overrides it per person.
+const DEFAULTS = {
+  committee: 'Training & Placement Committee',
+  college: 'MES College of Engineering',
+};
+
+export const members = records.map((cells) => {
+  const row = Object.fromEntries(keys.map((key, i) => [key, (cells[i] ?? '').trim()]));
+  return {
+    ...row,
+    committee: row.committee || DEFAULTS.committee,
+    college: row.college || DEFAULTS.college,
+  };
+});
 
 export const getMemberById = (id) => members.find((m) => m.id === String(id));

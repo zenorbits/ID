@@ -49,6 +49,13 @@ const Card3D = ({ member }) => {
     member.description ||
     `Official digital identity pass issued to the ${member.role} of the ${member.committee}. This pass grants access to committee events, resources, and verified TPC digital services.`;
 
+  const initials = member.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase())
+    .slice(0, 2)
+    .join('');
+
   const [isHovered, setIsHovered] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -419,12 +426,24 @@ const Card3D = ({ member }) => {
 
                     {/* Photo frame */}
                     <div className="relative w-[180px] h-[215px] sm:w-[200px] sm:h-[235px] rounded-[22px] p-[2px] bg-gradient-to-b from-neutral-600 via-neutral-700 to-neutral-800 shadow-2xl overflow-hidden border border-neutral-600/40">
-                      <img
-                        src={member.photo}
-                        alt={member.name}
-                        draggable={false}
-                        className="w-full h-full object-cover rounded-[20px]"
-                      />
+                      {member.photo ? (
+                        <img
+                          src={member.photo}
+                          alt={member.name}
+                          draggable={false}
+                          className="w-full h-full object-cover rounded-[20px]"
+                        />
+                      ) : (
+                        <div
+                          role="img"
+                          aria-label={member.name}
+                          className="w-full h-full rounded-[20px] bg-gradient-to-br from-neutral-800 via-neutral-900 to-black flex items-center justify-center"
+                        >
+                          <span className="text-5xl font-black tracking-wider text-green-400/90 drop-shadow-[0_0_18px_rgba(34,197,94,0.45)]">
+                            {initials}
+                          </span>
+                        </div>
+                      )}
                       {/* Corner cyber brackets */}
                       <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-green-400"></div>
                       <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-green-400"></div>
