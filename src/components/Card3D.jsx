@@ -482,7 +482,7 @@ const Card3D = ({ member }) => {
       {/* Helper cue */}
       <p className="text-[11px] text-neutral-500 tracking-wider mt-3 font-mono flex items-center gap-1.5 text-center">
         <Sparkles className="w-3 h-3 text-green-400/80 shrink-0" />
-        <span>Double-click to flip · Hold &amp; drag to pull</span>
+        <span>Double-tap to flip</span>
       </p>
     </div>
   );
